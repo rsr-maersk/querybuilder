@@ -1,4 +1,8 @@
+using System.Collections.Generic;
+using System.Data.SQLite;
+using Dapper;
 using SqlKata.Compilers;
+using SqlKata.Execution;
 using SqlKata.Tests.Infrastructure;
 using Xunit;
 
@@ -53,6 +57,27 @@ namespace SqlKata.Tests.Sqlite
             Assert.Equal(5, ctx.Bindings[0]);
             Assert.Equal(20, ctx.Bindings[1]);
             Assert.Equal(2, ctx.Bindings.Count);
+        }
+
+        [Fact]
+        public void AsInsert()
+        {
+            using var connection = new SQLiteConnection("Data Source=:memory:;New=True;");
+            connection.Open();
+            connection.Execute("CREATE TABLE TestTable (id INTEGER PRIMARY KEY,TestColumn int);");
+            
+            IEnumerable<KeyValuePair<string, object>> data = new[]
+            {
+                new KeyValuePair<string, object>("TestColumn", 1)
+            };
+            var query = new Query("TestTable").AsInsert(data, true);
+            using var queryFactory = new QueryFactory(connection, compiler);
+            var sqlResult = compiler.Compile(query);
+            var result = connection.Query<int>(sqlResult.Sql, sqlResult.Bindings);
+
+            var result1 = queryFactory(query);
+            //result = queryFactory.Execute(query);
+            //result = queryFactory.Execute(query);
         }
     }
 }
